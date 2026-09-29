@@ -3,7 +3,8 @@ from crawl import (
     normalize_url, 
     get_heading_from_html, 
     get_first_paragraph_from_html,
-    get_urls_from_html
+    get_urls_from_html,
+    get_images_from_html
     )
 
 class TestCrawl(unittest.TestCase):
@@ -164,13 +165,43 @@ class TestCrawl(unittest.TestCase):
         expected = []
         self.assertEqual(actual,expected)
 
-
+    # ***IMAGES***
     def test_get_images_from_html_relative(self):
         input_url = "https://crawler-test.com"
         input_body = '<html><body><img src="/logo.png" alt="Logo"></body></html>'
         actual = get_images_from_html(input_body, input_url)
         expected = ["https://crawler-test.com/logo.png"]
-        self.assertEqual(actual, expected)
+        self.assertEqual(actual, expected)  
+
+    def test_get_no_images(self):
+        input_url = "https://crawler-test.com"
+        input_body = '''<html><body> 
+                        <a href="https://absolute.com"><span>Boot.dev</span></a> 
+                        <a href="/relative"><span>Boot.dev/relative</span></a>
+                    </body></html>'''
+        actual = get_images_from_html(input_body, input_url)
+        expected = []
+        self.assertEqual(actual, expected)  
+    
+    def test_get_images_nested(self):
+        input_url = "https://example.com"
+        input_body = '''<html>
+                                <body>
+                                    <div>
+                                    <p>
+                                        Look at logo:
+                                        <img src="/logo.png" alt="Logo" />
+                                    </p>
+                                    </div>
+                                    <a href="/home">
+                                    <img src="https://example.com/icon.png" alt="Icon" />
+                                    </a>
+                                </body>
+                                </html>'''
+        actual = get_images_from_html(input_body, input_url)
+        expected = ["https://example.com/logo.png", "https://example.com/icon.png"]
+        self.assertEqual(actual, expected)  
+
 
 
 if __name__ == "__main__":

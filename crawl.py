@@ -65,6 +65,12 @@ def get_first_paragraph_from_html(html: str) -> str:
     h = soup.find('p')
     return  h.get_text(strip=True) if isinstance(h, Tag) else ""
 
+def safe_urljoin(x,y):
+    try:
+        z = urljoin(x,y)
+    except Exception as e:
+        print(e)
+    return z
 
 
 def get_urls_from_html(html, base_url):
@@ -72,7 +78,7 @@ def get_urls_from_html(html, base_url):
     
     try:
         res = (list(map(
-                lambda x: urljoin(base_url,x),
+                lambda x: safe_urljoin(base_url,x),
                 list(map(
                         lambda x: x.get('href'),
                         soup.find_all('a')
@@ -86,5 +92,18 @@ def get_urls_from_html(html, base_url):
     
     return res
 
-def get_images_from_html(html, base_url):
-    pass
+def get_images_from_html(body,url):
+    soup = BeautifulSoup(body, "html.parser")
+    return (
+        list(map(
+            lambda x: urljoin(url,x),
+            list(
+                map(
+                    lambda x: x.get('src'),
+                    soup.find_all('img')
+                    )
+                )
+            )
+        )
+    )
+    
