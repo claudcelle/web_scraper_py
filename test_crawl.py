@@ -40,22 +40,22 @@ class TestCrawl(unittest.TestCase):
     def test_no_protocol_url(self):
         input_url = "boot.dev"       
         actual = normalize_url(input_url)
-        expected = "www.boot.dev"
+        expected = "boot.dev"
         self.assertEqual(actual, expected)
     def test_path_no_protocol(self):
-        input_url = "boot.dev/path"
+        input_url = "boot.dev/path".title()
         actual = normalize_url(input_url)
-        expected = "www.boot.dev/path"
+        expected = "boot.dev/path"
         self.assertEqual(actual, expected)
     def test_path_no_protocol_trailing_slash(self):
-        input_url = "boot.dev/path/"
+        input_url = "boot.dev/path/".capitalize()
         actual = normalize_url(input_url)
-        expected = "www.boot.dev/path"
+        expected = "boot.dev/path"
         self.assertEqual(actual, expected)
     def test_full_url(self):
         input_url = "http://testuser:testpass@testdomain.com:8080/testpath?testsearch=testvalue#testhash"
         actual = normalize_url(input_url)
-        expected = "www.testdomain.com/testpath"
+        expected = "testuser:testpass@testdomain.com:8080/testpath"
         self.assertEqual(actual, expected)
 
     # Root path: https://www.boot.dev/
@@ -80,14 +80,9 @@ class TestCrawl(unittest.TestCase):
     def test_credentials_and_port(self):
         input_url = "http://user:pass@boot.dev:8080/path"
         actual = normalize_url(input_url)
-        expected = "www.boot.dev/path"
+        expected = "user:pass@boot.dev:8080/path"
         self.assertEqual(actual, expected)
-    # Repeated trailing slashes: https://boot.dev/path///
-    # def test_repeated_trailing_slashes(self):
-    #     input_url = "https://boot.dev/path///"
-    #     actual = normalize_url(input_url)
-    #     expected = "www.boot.dev/path"
-    #     self.assertEqual(actual, expected)
+   
 
 
     
@@ -99,8 +94,8 @@ class TestCrawl(unittest.TestCase):
         self.assertEqual(actual, expected)
 
 
-    def test_get_h2(self):
-        input_body = "<html><body><h2>Test Title in h2</h2></body></html>"
+    def test_get_h2_whitespaces(self):
+        input_body = "<html><body><h2>Test Title in h2   </h2></body></html>"
         actual = get_heading_from_html(input_body)
         expected = "Test Title in h2"
         self.assertEqual(actual, expected)
@@ -170,12 +165,12 @@ class TestCrawl(unittest.TestCase):
         self.assertEqual(actual,expected)
 
 
-    # def test_get_images_from_html_relative(self):
-    #     input_url = "https://crawler-test.com"
-    #     input_body = '<html><body><img src="/logo.png" alt="Logo"></body></html>'
-    #     actual = get_images_from_html(input_body, input_url)
-    #     expected = ["https://crawler-test.com/logo.png"]
-    #     self.assertEqual(actual, expected)
+    def test_get_images_from_html_relative(self):
+        input_url = "https://crawler-test.com"
+        input_body = '<html><body><img src="/logo.png" alt="Logo"></body></html>'
+        actual = get_images_from_html(input_body, input_url)
+        expected = ["https://crawler-test.com/logo.png"]
+        self.assertEqual(actual, expected)
 
 
 if __name__ == "__main__":

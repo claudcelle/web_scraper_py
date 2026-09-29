@@ -1,50 +1,57 @@
 from urllib.parse import urlsplit,urljoin
 def normalize_url(input_url: str)->str:
 
-    parsed = urlsplit(input_url)
-    hostname = parsed.hostname
-    path = parsed.path
+    parsed_url = urlsplit(input_url)
+    full_path = f"{parsed_url.netloc}{parsed_url.path}"
+    full_path = full_path.rstrip("/")
+    return full_path.lower()
 
-    if hostname is None:
-        if path == "":
-            return ""
-        if path.endswith("/"):
-            path = path[:-1]
-        if path.startswith("/"):
-            path = path[1:]
-        if path.startswith("www."):
-            return path
-        else:
-            return f"www.{path}"
+    # parsed = urlsplit(input_url)
+    # hostname = parsed.hostname
+    # path = parsed.path
 
-    if hostname.startswith("www."):
-        hostname = hostname[4:]
+    # if hostname is None:
+    #     if path == "":
+    #         return ""
+    #     if path.endswith("/"):
+    #         path = path[:-1]
+    #     if path.startswith("/"):
+    #         path = path[1:]
+    #     if path.startswith("www."):
+    #         return path
+    #     else:
+    #         return f"www.{path}"
 
-    if path:
-        if path == "/":
-            return f"www.{hostname}"
-        if path.endswith("/"):
-            path = path[:-1]
+    # if hostname.startswith("www."):
+    #     hostname = hostname[4:]
+
+    # if path:
+    #     if path == "/":
+    #         return f"www.{hostname}"
+    #     if path.endswith("/"):
+    #         path = path[:-1]
 
 
-        if path.startswith("/"):
-            return f"www.{hostname}{path}"
+    #     if path.startswith("/"):
+    #         return f"www.{hostname}{path}"
 
-        return f"www.{hostname}/{path}"
-    return f"www.{hostname}"
+    #     return f"www.{hostname}/{path}"
+    # return f"www.{hostname}"
 
 
 from bs4 import BeautifulSoup, Tag
 
 def get_heading_from_html(html: str) -> str:
     soup = BeautifulSoup(html, 'html.parser')
-    h_tag = soup.find('h1')
-    if h_tag:
-        return h_tag.get_text(strip=True) if isinstance(h_tag, Tag) else ""
-    h_tag = soup.find('h2')
-    if h_tag:
-        return h_tag.get_text(strip=True) if isinstance(h_tag, Tag) else ""
-    return ""
+    h_tag = soup.find('h1') or soup.find('h2')
+    return h_tag.get_text(strip=True) if isinstance(h_tag, Tag) else ""
+
+    # if h_tag:
+    #     return h_tag.get_text(strip=True) if isinstance(h_tag, Tag) else ""
+    # h_tag = soup.find('h2')
+    # if h_tag:
+    #     return h_tag.get_text(strip=True) if isinstance(h_tag, Tag) else ""
+    # return ""
 
 
 def get_first_paragraph_from_html(html: str) -> str:
