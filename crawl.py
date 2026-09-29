@@ -75,35 +75,47 @@ def safe_urljoin(x,y):
 
 def get_urls_from_html(html, base_url):
     soup = BeautifulSoup(html,'html.parser')
-    
-    try:
-        res = (list(map(
-                lambda x: safe_urljoin(base_url,x),
-                list(map(
-                        lambda x: x.get('href'),
-                        soup.find_all('a')
-                        )
-                    )
-                        )
-                )
-            )
-    except Exception as e:
-        return e
-    
-    return res
+    urls = []
+    anchors = soup.find_all('a')
 
-def get_images_from_html(body,url):
-    soup = BeautifulSoup(body, "html.parser")
-    return (
-        list(map(
-            lambda x: urljoin(url,x),
-            list(
-                map(
-                    lambda x: x.get('src'),
-                    soup.find_all('img')
-                    )
-                )
-            )
-        )
-    )
+    for a in anchors:
+        if not isinstance(a,Tag):
+            continue
+        href = a.get('href')
+        try:
+            abs_url = urljoin(base_url, href)
+            urls.append(abs_url)
+        except Exception as e:
+            print(f"{str(e)}: {href}")
+    return urls
+
+
+def get_images_from_html(html, base_url):
+    soup = BeautifulSoup(html,'html.parser')
+    urls = []
+    images = soup.find_all('img')
+
+    for a in images:
+        if not isinstance(a,Tag):
+            continue
+        src = a.get('src')
+        try:
+            abs_url = urljoin(base_url, src)
+            urls.append(abs_url)
+        except Exception as e:
+            print(f"{str(e)}: {src}")
+    return urls
+    # soup = BeautifulSoup(body, "html.parser")
+    # return (
+    #     list(map(
+    #         lambda x: urljoin(url,x),
+    #         list(
+    #             map(
+    #                 lambda x: x.get('src'),
+    #                 soup.find_all('img')
+    #                 )
+    #             )
+    #         )
+    #     )
+    # )
     
