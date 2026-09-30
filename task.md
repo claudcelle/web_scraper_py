@@ -1,3 +1,11 @@
+All your main function should do at this point is:
+
+0� [ ] If the number of CLI arguments is less than 2, print "no website provided" and exit with code 1.
+0� [ ] If the number of CLI arguments is more than 2, print "too many arguments provided" and exit with code 1.
+0� [ ] If we have exactly two CLI arguments, the second is the `BASE_URL`, so print a message letting the user know the crawler is starting at that URL: `starting crawl of: BASE_URL`, where `BASE_URL` is the URL provided as the CLI argument.
+
+---
+
 write more edge cases tests #TODO
 
 DONE
@@ -17,8 +25,6 @@ DONE
             actual = normalize_url(input_url)
             expected = "www.boot.dev/blog/path"
             self.assertEqual(actual, expected)
-
-
 
     if __name__ == "__main__":
         unittest.main()
