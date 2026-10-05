@@ -12,22 +12,22 @@ class TestCrawl(unittest.TestCase):
     def test_normalize_https_url_with_trailing_slash(self):
         input_url = "https://www.boot.dev/blog/path/"
         actual = normalize_url(input_url)
-        expected = "www.boot.dev/blog/path"
+        expected = "https://www.boot.dev/blog/path"
         self.assertEqual(actual, expected)
     def test_normalize_https_url_without_trailing_slash(self):
-        input_url = "https://www.boot.dev/blog/path"
+        input_url = "www.boot.dev/blog/path"
         actual = normalize_url(input_url)
         expected = "www.boot.dev/blog/path"
         self.assertEqual(actual, expected)
     def test_normalize_http_url_with_trailing_slash(self):
-        input_url = "http://www.boot.dev/blog/path/"
+        input_url = "http://www.BooT.dev/blog/path/"
         actual = normalize_url(input_url)
-        expected = "www.boot.dev/blog/path"
+        expected = "http://www.boot.dev/blog/path"
         self.assertEqual(actual, expected)
     def test_normalize_http_url_without_trailing_slash(self):
         input_url = "http://www.boot.dev/blog/path"
         actual = normalize_url(input_url)
-        expected = "www.boot.dev/blog/path"
+        expected = "http://www.boot.dev/blog/path"
         self.assertEqual(actual, expected)     
     def test_already_normalized_url(self):
         input_url = "www.boot.dev"       
@@ -57,38 +57,28 @@ class TestCrawl(unittest.TestCase):
     def test_full_url(self):
         input_url = "http://testuser:testpass@testdomain.com:8080/testpath?testsearch=testvalue#testhash"
         actual = normalize_url(input_url)
-        expected = "testuser:testpass@testdomain.com:8080/testpath"
+        expected = "http://testuser:testpass@testdomain.com:8080/testpath"
         self.assertEqual(actual, expected)
 
     # Root path: https://www.boot.dev/
     def test_root_path(self):
         input_url = "https://www.boot.dev/"
         actual = normalize_url(input_url)
-        expected = "www.boot.dev"
+        expected = "https://www.boot.dev"
         self.assertEqual(actual, expected)
     # Query only: https://www.boot.dev?x=1
     def test_query_only(self):
         input_url = "https://www.boot.dev?x=1"
         actual = normalize_url(input_url)
-        expected = "www.boot.dev"
+        expected = "https://www.boot.dev"
         self.assertEqual(actual, expected)
     # Fragment only: https://www.boot.dev#top
     def test_fragment_only(self):
         input_url = "https://www.boot.dev#top"
         actual = normalize_url(input_url)
-        expected = "www.boot.dev"
+        expected = "https://www.boot.dev"
         self.assertEqual(actual, expected)
-    # Credentials and port: http://user:pass@boot.dev:8080/path
-    def test_credentials_and_port(self):
-        input_url = "http://user:pass@boot.dev:8080/path"
-        actual = normalize_url(input_url)
-        expected = "user:pass@boot.dev:8080/path"
-        self.assertEqual(actual, expected)
-   
-
-
     
-
     def test_get_h1(self):
         input_body = "<html><body><h1>Test Title</h1></body></html>"
         actual = get_heading_from_html(input_body)
