@@ -5,7 +5,7 @@ from crawl import  AsyncCrawler, crawl_site_async
 import json
 from urllib.parse import urlparse
 import asyncio
-ASYNC = False
+ASYNC = True
 def main():
     print("Hello from web-scaper-py!")
 
@@ -44,7 +44,7 @@ async def main_async():
     print(f"starting crawl of: {BASE_URL}")
     #ASYNCHRONOUS VERSION
     
-    page_data = await crawl_site_async(BASE_URL, urlparse(BASE_URL).netloc, 10)
+    page_data = await crawl_site_async(base_url=BASE_URL, max_concurrency=10)
     with open('page_data_aync.txt', 'w', encoding='utf-8') as f:
         json.dump(page_data, f, indent=4, ensure_ascii=False)
 

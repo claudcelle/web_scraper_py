@@ -1,7 +1,10 @@
+from curses import echo
 from email.mime import base
 from operator import add
 from urllib.parse import urlsplit,urljoin
 from typing import TypedDict 
+from types import TracebackType
+
 
 def normalize_url(input_url: str|None)->str:
 
@@ -214,23 +217,28 @@ def crawl_page(base_url, current_url=None, page_data=None):
 import aiohttp
 import asyncio
 class AsyncCrawler:
-    def __init__(self,base_url,base_domain,max_concurrency) -> None:
+    def __init__(self,base_url,max_concurrency) -> None:
         self.base_url = base_url #(the starting URL)
-        self.base_domain = base_domain #(the domain name)
-        self.page_data = {} #(our dictionary of page data, keyed by normalized URL)
-        self.visited = set() #(a set of normalized URLs already scheduled for crawling)
+        self.base_domain = urlparse(base_url).netloc #(the domain name)
+        self.page_data: dict[str, PageData] = {} #(our dictionary of page data, keyed by normalized URL)
+        self.visited: set[str] = set() #(a set of normalized URLs already scheduled for crawling)
         self.lock = asyncio.Lock() #(an asyncio.Lock to safely update page_data)
         self.semaphore = asyncio.Semaphore(max_concurrency) #(an asyncio.Semaphore - pass it the value of max_concurrency)
-        self.session = None #(an aiohttp.ClientSession for making HTTP requests)
+        self.session: aiohttp.ClientSession | None = None #(an aiohttp.ClientSession for making HTTP requests)
 
 
-    async def __aenter__(self):
+    async def __aenter__(self)-> "AsyncCrawler":
         self.session = aiohttp.ClientSession()
         return self
 
 
-    async def __aexit__(self, exc_type, exc_val, exc_tb):
-        await self.session.close()
+    async def __aexit__(self, 
+                        exc_type: type[BaseException] | None, 
+                        exc_val: BaseException | None, 
+                        exc_tb: TracebackType | None, 
+                        ) -> None:
+        if self.session is not None:
+            await self.session.close()
 
     async def add_page_visit(self, normalized_url):
         async with self.lock:
@@ -240,24 +248,25 @@ class AsyncCrawler:
             return True
         
     async def get_html(self, url:str):
+        if self.session is None:
+            return None
         try:
-            async with self.session.get(url,headers={"User-Agent": "BootCrawler/1.0"}) as resp:
+            async with self.session.get( 
+                url, 
+                headers={"User-Agent": "BootCrawler/1.0"}
+                ) as resp:
                 code = resp.status
+                if code >= 400:
+                    raise Exception(f" HTTP status code {code}: {resp.reason}")
                 content_type = resp.content_type
+                if "text/html" not in content_type:
+                    raise Exception(f"got non-HTML response: {content_type}")
                 text = await resp.text()
+                return text 
         except Exception as e:
             print(f"Network Error while fetching {url}: {e}")
             return None
 
-        if code >= 400:
-            raise Exception(f" HTTP status code {code}: {resp.reason}")
-
-        if "text/html" not in content_type:
-            raise Exception(f"got non-HTML response: {content_type}")
-
-
-        return text
-        
     async def crawl_page(self, current_url=None):
 
         if not current_url:
@@ -284,11 +293,13 @@ class AsyncCrawler:
         try:
             async with self.semaphore:
                 current_html = await self.get_html(current_url)
-
+            if current_html is None:
+                raise RuntimeError(f"Failed to get HTML for {current_url}")
             logger.info("Crawling: %s", current_url)
 
             current_data = extract_page_data(current_html, current_url)
-            self.page_data[current_url] = current_data
+            async with self.lock:
+                self.page_data[current_url] = current_data
 
             links = get_urls_from_html(current_html, current_url)
 
@@ -308,6 +319,6 @@ class AsyncCrawler:
     async def crawl(self):
         await self.crawl_page(self.base_url)
         return self.page_data
-async def crawl_site_async(base_url, base_domain, max_concurrency):
-    async with AsyncCrawler(base_url, base_domain, max_concurrency) as crawler:
+async def crawl_site_async(base_url, max_concurrency):
+    async with AsyncCrawler(base_url, max_concurrency) as crawler:
         return await crawler.crawl()
