@@ -36,19 +36,25 @@ async def main_async():
     if len(args)<2:
         print("no website provided")
         sys.exit(1)
-    if len(args)>2:
+    if len(args)>4:
         print("too many arguments provided")
         sys.exit(1)
     BASE_URL=args[1]
+    MAX_CONCURRENCY = int(args[2])
+    MAX_PAGES = int(args[3])
+    string = f"MC{MAX_CONCURRENCY}_MP{MAX_PAGES}"
     
     print(f"starting crawl of: {BASE_URL}")
     #ASYNCHRONOUS VERSION
     
-    page_data = await crawl_site_async(base_url=BASE_URL, max_concurrency=10)
-    with open('page_data_aync.txt', 'w', encoding='utf-8') as f:
+    page_data = await crawl_site_async(base_url=BASE_URL, max_concurrency=MAX_CONCURRENCY, max_pages=MAX_PAGES)
+    
+    with open(f'page_data_async_{string}.txt', 'w', encoding='utf-8') as f:
         json.dump(page_data, f, indent=4, ensure_ascii=False)
-
+    for page in page_data.values():
+        print(f"Found {len(page['outgoing_links'])} outgoing links on {page['url']}")
     print("DONE! bONA CIcCiO!")
+    # print(page_data)
 
 
 import time

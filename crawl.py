@@ -166,10 +166,12 @@ def get_html(url:str):
     
 from urllib.parse import urlparse
 import logging
+import sys
 
 logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s | %(levelname)s | %(message)s"
+    level=logging.DEBUG,
+    format="%(asctime)s | %(levelname)s | %(message)s",    
+    handlers=[logging.StreamHandler(sys.stdout)],
 )
 logger = logging.getLogger(__name__)
 
@@ -217,7 +219,7 @@ def crawl_page(base_url, current_url=None, page_data=None):
 import aiohttp
 import asyncio
 class AsyncCrawler:
-    def __init__(self,base_url,max_concurrency) -> None:
+    def __init__(self,base_url,max_concurrency = 10, max_pages = 100) -> None:
         self.base_url = base_url #(the starting URL)
         self.base_domain = urlparse(base_url).netloc #(the domain name)
         self.page_data: dict[str, PageData] = {} #(our dictionary of page data, keyed by normalized URL)
@@ -225,6 +227,10 @@ class AsyncCrawler:
         self.lock = asyncio.Lock() #(an asyncio.Lock to safely update page_data)
         self.semaphore = asyncio.Semaphore(max_concurrency) #(an asyncio.Semaphore - pass it the value of max_concurrency)
         self.session: aiohttp.ClientSession | None = None #(an aiohttp.ClientSession for making HTTP requests)
+        self.max_pages = max_pages
+        self.should_stop = False
+        self.active_tasks = set()
+
 
 
     async def __aenter__(self)-> "AsyncCrawler":
@@ -241,6 +247,12 @@ class AsyncCrawler:
             await self.session.close()
 
     async def add_page_visit(self, normalized_url):
+        if self.should_stop:
+            return False
+        if len(self.visited) >= self.max_pages:
+            self.should_stop = True
+            print("Reached maximum number of pages to crawl.")
+            return False
         async with self.lock:
             if normalized_url in self.visited:
                 return False
@@ -257,10 +269,10 @@ class AsyncCrawler:
                 ) as resp:
                 code = resp.status
                 if code >= 400:
-                    raise Exception(f" HTTP status code {code}: {resp.reason}")
+                    logger.warning(f" HTTP status code {code}: {resp.reason}")
                 content_type = resp.content_type
                 if "text/html" not in content_type:
-                    raise Exception(f"got non-HTML response: {content_type}")
+                    logger.warning(f"got non-HTML response: {content_type}")
                 text = await resp.text()
                 return text 
         except Exception as e:
@@ -272,53 +284,62 @@ class AsyncCrawler:
         if not current_url:
             current_url = self.base_url
 
-        if urlparse(self.base_url).netloc != urlparse(current_url).netloc:
-            logger.debug("Exiting: base_url.netloc != current_url.netloc")
-            logger.debug(
-                "%s != %s",
-                urlparse(self.base_url).netloc,
-                urlparse(current_url).netloc
-            )
-            return
-    
-        if not await self.add_page_visit(normalize_url(current_url)):
-            return self.page_data
-
-        current_url = normalize_url(current_url)
-
-        if current_url in self.page_data:
-            logger.debug("Exiting: current_url already in page_data: %s", current_url)
-            return
-
         try:
+            if urlparse(self.base_url).netloc != urlparse(current_url).netloc:
+                logger.debug("Exiting: base_url.netloc != current_url.netloc")
+                logger.debug(
+                    "%s != %s",
+                    urlparse(self.base_url).netloc,
+                    urlparse(current_url).netloc
+                )
+                return
+        
+            if not await self.add_page_visit(normalize_url(current_url)):
+                return self.page_data
+
+            current_url = normalize_url(current_url)
+
+            if current_url in self.page_data:
+                logger.debug("Exiting: current_url already in page_data: %s", current_url)
+                return
+
             async with self.semaphore:
                 current_html = await self.get_html(current_url)
             if current_html is None:
-                raise RuntimeError(f"Failed to get HTML for {current_url}")
+                logger.warning(f"Failed to get HTML for {current_url}")
+                return
             logger.info("Crawling: %s", current_url)
 
             current_data = extract_page_data(current_html, current_url)
             async with self.lock:
                 self.page_data[current_url] = current_data
 
-            links = get_urls_from_html(current_html, current_url)
+            # links = get_urls_from_html(current_html, current_url)
+            links = current_data["outgoing_links"]
 
             tasks = []
             for link in links:
-                tasks.append(asyncio.create_task(
-                    self.crawl_page(link)
-                ))
+                task = asyncio.create_task(self.crawl_page(link))
+                tasks.append(task)
+                self.active_tasks.add(task)
 
             await asyncio.gather(*tasks)
                     
 
-        except Exception:
-            logger.exception("Error while crawling %s", current_url)
+        except Exception as e :
+            logger.exception("Error while crawling %s: %s", current_url, e)
+            return None
+        finally:
+            self.active_tasks.remove(asyncio.current_task())
 
         return self.page_data
     async def crawl(self):
-        await self.crawl_page(self.base_url)
+        if self.should_stop:
+            return self.page_data
+        task = asyncio.create_task(self.crawl_page(self.base_url))
+        self.active_tasks.add(task)
+        await task
         return self.page_data
-async def crawl_site_async(base_url, max_concurrency):
-    async with AsyncCrawler(base_url, max_concurrency) as crawler:
+async def crawl_site_async(base_url, max_concurrency, max_pages):
+    async with AsyncCrawler(base_url, max_concurrency, max_pages) as crawler:
         return await crawler.crawl()
