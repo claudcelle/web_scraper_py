@@ -265,7 +265,7 @@ class AsyncCrawler:
         try:
             async with self.session.get( 
                 url, 
-                headers={"User-Agent": "BootCrawler/1.0"}
+                headers={"User-Agent": "BootCrawler/1.0; educational purposed crawler (mailto:claudio.cellerini.2@gmail.com)"}
                 ) as resp:
                 code = resp.status
                 if code >= 400:
@@ -343,3 +343,14 @@ class AsyncCrawler:
 async def crawl_site_async(base_url, max_concurrency, max_pages):
     async with AsyncCrawler(base_url, max_concurrency, max_pages) as crawler:
         return await crawler.crawl()
+
+
+
+import json 
+
+def write_json_report(page_data,filename="report.json"):
+
+    with open(filename, 'w', encoding='utf-8') as f:
+        sorted_list = sorted(page_data.values(), key=lambda p: p["url"])
+        json.dump(sorted_list, f, indent=2)
+

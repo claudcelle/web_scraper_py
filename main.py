@@ -1,7 +1,7 @@
 from pydoc import pager
 import sys
 from crawl import get_html,crawl_page
-from crawl import  AsyncCrawler, crawl_site_async
+from crawl import  AsyncCrawler, crawl_site_async, write_json_report
 import json
 from urllib.parse import urlparse
 import asyncio
@@ -19,12 +19,12 @@ def main():
     BASE_URL=args[1]
     
     print(f"starting crawl of: {BASE_URL}")
-       # SYNCHRONOUS VERSION
-    # print(get_html(BASE_URL))
    
     page_data = crawl_page(BASE_URL)    
-    with open('page_data.txt', 'w', encoding='utf-8') as f:
-        json.dump(page_data, f, indent=4, ensure_ascii=False)
+    # with open('page_data.txt', 'w', encoding='utf-8') as f:
+    #     json.dump(page_data, f, indent=4, ensure_ascii=False)
+    fname = f"report.json"
+    write_json_report(page_data,fname)
 
     
     print("DONE! bONA CIcCiO!")
@@ -48,7 +48,7 @@ async def main_async():
     #ASYNCHRONOUS VERSION
     
     page_data = await crawl_site_async(base_url=BASE_URL, max_concurrency=MAX_CONCURRENCY, max_pages=MAX_PAGES)
-    
+    write_json_report(page_data)
     with open(f'page_data_async_{string}.txt', 'w', encoding='utf-8') as f:
         json.dump(page_data, f, indent=4, ensure_ascii=False)
     for page in page_data.values():
